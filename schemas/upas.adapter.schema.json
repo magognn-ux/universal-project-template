@@ -1,0 +1,417 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.upas.dev/v1/upas.adapter.schema.json",
+  "title": "UPAS Project Adapter Contract Schema",
+  "description": "Strict declarative contract binding a project to the Universal Project Automation Standard (UPAS).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "upas_target_version",
+    "project",
+    "zones",
+    "test_engine",
+    "artifact",
+    "resource_gate",
+    "deployment",
+    "verification",
+    "backup",
+    "migration",
+    "authorization"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0.0"],
+      "description": "Version of the UPAS Adapter contract schema."
+    },
+    "upas_target_version": {
+      "type": "string",
+      "pattern": "^[>=<~^0-9\\.\\s,*-]+$",
+      "description": "SemVer constraint of compatible UPAS Core versions (e.g. '>=1.0.0,<2.0.0')."
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "language", "runtime_version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]+$",
+          "description": "Canonical machine name of the project."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["application", "library", "infrastructure"],
+          "description": "Project archetype."
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Primary language (e.g. python, typescript, go)."
+        },
+        "runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target runtime version (e.g. '3.12', '20.x')."
+        }
+      }
+    },
+    "zones": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "paths", "risk_level", "default_test_level"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9_\\-]+$"
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "default_test_level": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          }
+        }
+      }
+    },
+    "test_engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "level_commands", "test_map", "escalation_triggers"],
+      "properties": {
+        "runner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Test test runner tool (e.g. pytest, vitest, cargo test)."
+        },
+        "level_commands": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level_0",
+            "level_1",
+            "level_2",
+            "level_3",
+            "level_4",
+            "level_5"
+          ],
+          "properties": {
+            "level_0": { "type": "string", "minLength": 1, "description": "L0: Syntax & Compilation check" },
+            "level_1": { "type": "string", "minLength": 1, "description": "L1: Targeted Unit tests" },
+            "level_2": { "type": "string", "minLength": 1, "description": "L2: Dependency Zone tests" },
+            "level_3": { "type": "string", "minLength": 1, "description": "L3: Integration & API contract tests" },
+            "level_4": { "type": "string", "minLength": 1, "description": "L4: Architecture Guard & Layer tests" },
+            "level_5": { "type": "string", "minLength": 1, "description": "L5: Full Suite Release Gate (CI Only)" }
+          }
+        },
+        "test_map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["match", "tests"],
+            "properties": {
+              "match": { "type": "string", "minLength": 1 },
+              "tests": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "escalate_to_level": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              }
+            }
+          }
+        },
+        "escalation_triggers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "database_migrations",
+            "database_schemas",
+            "api_contracts",
+            "runtime_configuration",
+            "dependency_manifests",
+            "infrastructure_manifests",
+            "security_sensitive_files"
+          ],
+          "properties": {
+            "database_migrations": { "type": "integer", "enum": [4, 5], "description": "Escalation level for DB migrations (must be 4 or 5)." },
+            "database_schemas": { "type": "integer", "enum": [3, 4, 5] },
+            "api_contracts": { "type": "integer", "enum": [3, 4, 5] },
+            "runtime_configuration": { "type": "integer", "enum": [3, 4] },
+            "dependency_manifests": { "type": "integer", "enum": [3, 4, 5] },
+            "infrastructure_manifests": { "type": "integer", "enum": [3, 4, 5] },
+            "security_sensitive_files": { "type": "integer", "enum": [3, 4, 5] }
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "builder", "registry", "immutable_tag_format"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "container_image",
+            "s3_archive",
+            "standalone_binary",
+            "static_bundle"
+          ]
+        },
+        "builder": { "type": "string", "minLength": 1 },
+        "registry": { "type": "string", "minLength": 1 },
+        "immutable_tag_format": { "type": "string", "minLength": 1 }
+      }
+    },
+    "resource_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pre_flight_checks"],
+      "properties": {
+        "pre_flight_checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_free_ram_mb",
+            "max_swap_usage_pct",
+            "max_1m_load_average",
+            "min_free_disk_gb"
+          ],
+          "properties": {
+            "min_free_ram_mb": { "type": "number", "minimum": 0 },
+            "max_swap_usage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "max_1m_load_average": { "type": "number", "minimum": 0 },
+            "min_free_disk_gb": { "type": "number", "minimum": 0 },
+            "required_shared_containers": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "target_host",
+        "service_name",
+        "runtime_directory"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["immutable_pull", "binary_replace", "static_sync"]
+        },
+        "target_host": { "type": "string", "minLength": 1 },
+        "service_name": { "type": "string", "pattern": "^[a-z0-9_\\-]+$" },
+        "runtime_directory": { "type": "string", "minLength": 1 },
+        "compose_file": { "type": "string" },
+        "concurrency_group": {
+          "type": "string",
+          "default": "production-deploy"
+        },
+        "host_lock_path": {
+          "type": "string",
+          "pattern": "^/.*",
+          "default": "/run/lock/upas-deploy.lock"
+        },
+        "lock_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health_check"],
+      "properties": {
+        "health_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "timeout_seconds",
+            "max_retries",
+            "retry_interval_seconds"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["http_get", "tcp_socket", "process_check", "custom_command"]
+            },
+            "endpoint": { "type": "string" },
+            "expected_status": { "type": "integer" },
+            "command": { "type": "string" },
+            "timeout_seconds": { "type": "integer", "minimum": 1 },
+            "max_retries": { "type": "integer", "minimum": 1 },
+            "retry_interval_seconds": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "smoke_test": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "command", "timeout_seconds"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["custom_command", "http_suite"]
+            },
+            "command": { "type": "string", "minLength": 1 },
+            "timeout_seconds": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "engine_hook", "retention_count", "checkpoint_dir"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["database_and_config", "file_snapshot", "none"]
+        },
+        "engine_hook": { "type": "string", "minLength": 1 },
+        "retention_count": { "type": "integer", "minimum": 1 },
+        "checkpoint_dir": { "type": "string", "minLength": 1 }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification_policy",
+        "default_classification",
+        "two_phase_protocol"
+      ],
+      "properties": {
+        "classification_policy": {
+          "type": "string",
+          "enum": ["explicit_manifest", "auto_analyzer"]
+        },
+        "default_classification": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "ADDITIVE_COMPATIBLE",
+            "POTENTIALLY_INCOMPATIBLE",
+            "DESTRUCTIVE_IRREVERSIBLE"
+          ]
+        },
+        "two_phase_protocol": {
+          "type": "boolean",
+          "description": "If true, enforces separate pre-deploy backward-compatible migration and post-deploy finalize."
+        },
+        "pre_deploy_hook": { "type": "string" },
+        "post_deploy_finalize_hook": { "type": "string" }
+      }
+    },
+    "infrastructure_dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "access"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": ["external"],
+            "description": "Infrastructure dependency MUST be declared as external."
+          },
+          "access": {
+            "type": "string",
+            "enum": ["readonly_consumer"],
+            "description": "Application adapters can ONLY be readonly_consumers of shared infrastructure."
+          },
+          "health_endpoint_or_container": { "type": "string" }
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "environment_name",
+        "expected_issuer",
+        "expected_audience",
+        "required_claims"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["github_environment_oidc"],
+          "description": "Production authorization provider."
+        },
+        "environment_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "GitHub Environment name protected by Required Reviewers (e.g. 'production')."
+        },
+        "expected_issuer": {
+          "type": "string",
+          "enum": ["https://token.actions.githubusercontent.com"]
+        },
+        "expected_audience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target audience claim for OIDC validation (e.g. 'upas-production-gate')."
+        },
+        "required_claims": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string",
+            "enum": ["repository", "environment", "ref", "job_workflow_ref", "sub", "aud", "run_id", "actor"]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "migration": {
+            "properties": {
+              "default_classification": {
+                "enum": ["POTENTIALLY_INCOMPATIBLE", "DESTRUCTIVE_IRREVERSIBLE"]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "migration": {
+            "properties": {
+              "two_phase_protocol": { "enum": [true] }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

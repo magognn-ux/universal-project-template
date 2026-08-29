@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_type": "deployment_audit_record",
+  "operation_id": "op_deploy_fake_state",
+  "correlation_id": "rel_20260828_8f3a1c9",
+  "project": {
+    "name": "fake_service",
+    "type": "application",
+    "adapter_version": "1.0.0"
+  },
+  "authoritative_sources": {
+    "git_dag": {
+      "commit_sha": "8f3a1c9b2e04d7119024fbc09123456789abcdef",
+      "branch": "master",
+      "dirty_tree": false
+    },
+    "ci_execution": {
+      "provider": "github_actions",
+      "run_id": "987654321",
+      "conclusion": "success"
+    },
+    "artifact_provenance": {
+      "immutable_digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+      "canonical_reference": "ghcr.io/org/app@sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+      "verified_running_digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"
+    },
+    "production_authorization": {
+      "policy": "github_environment_oidc",
+      "actor": "lead-architect",
+      "run_id": "987654321",
+      "environment": "production",
+      "approval_timestamp": "2026-08-28T18:20:45Z"
+    },
+    "host_runtime": {
+      "host_identity": "runode-vps-01",
+      "kernel_timestamp": "2026-08-28T18:21:00Z",
+      "lock_state": {
+        "lock_acquired": true,
+        "lock_path": "/run/lock/upas-deploy.lock",
+        "lock_owner_pid": 14205
+      }
+    }
+  },
+  "steps": [
+    {
+      "name": "step_1",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 100
+    }
+  ],
+  "final_verdict": {
+    "state": "DECLARED_SUCCESS_WITHOUT_VERIFICATION",
+    "exit_code": 0,
+    "completed_at": "2026-08-28T18:21:15Z",
+    "total_duration_ms": 100
+  }
+}

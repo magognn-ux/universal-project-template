@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0.0",
+  "upas_target_version": ">=1.0.0,<2.0.0",
+  "project": {
+    "name": "universal-project-template",
+    "type": "library",
+    "language": "python",
+    "runtime_version": "3.12"
+  },
+  "zones": [
+    {
+      "name": "core_framework",
+      "paths": [
+        "upas_core/adapter/**",
+        "upas_core/contracts/**",
+        "upas_core/execution/**",
+        "upas_core/locking/**",
+        "upas_core/compatibility/**"
+      ],
+      "risk_level": "medium",
+      "default_test_level": 1
+    },
+    {
+      "name": "cli_and_discovery",
+      "paths": [
+        "upas_core/cli/**",
+        "upas_core/discovery/**",
+        "upas_cli.py"
+      ],
+      "risk_level": "medium",
+      "default_test_level": 2
+    },
+    {
+      "name": "testing_and_resources",
+      "paths": [
+        "upas_core/testing/**",
+        "upas_core/resources/**",
+        "upas_core/verification/**",
+        "upas_core/backup/**"
+      ],
+      "risk_level": "high",
+      "default_test_level": 2
+    },
+    {
+      "name": "security_and_governance",
+      "paths": [
+        "upas_core/security/**",
+        "upas_core/governance/**",
+        "upas_core/evidence/**",
+        "upas_core/deployment/**"
+      ],
+      "risk_level": "high",
+      "default_test_level": 4
+    },
+    {
+      "name": "schemas_and_contracts",
+      "paths": [
+        "schemas/**"
+      ],
+      "risk_level": "critical",
+      "default_test_level": 4
+    }
+  ],
+  "test_engine": {
+    "runner": "pytest",
+    "level_commands": {
+      "level_0": "python -m compileall upas_core tests",
+      "level_1": "pytest tests/unit/contracts/ tests/unit/adapter/ -v --tb=short",
+      "level_2": "pytest tests/unit/cli/ tests/unit/testing/ tests/unit/discovery/ -v --tb=short",
+      "level_3": "pytest tests/unit/security/ tests/unit/evidence/ tests/unit/resources/ -v --tb=short",
+      "level_4": "pytest tests/test_schemas_validation.py tests/unit/deployment/ tests/unit/governance/ -v --tb=short",
+      "level_5": "pytest tests/ -v --tb=short"
+    },
+    "test_map": [
+      {
+        "match": "upas_core/testing/",
+        "tests": [
+          "tests/unit/testing/test_budget_engine.py"
+        ],
+        "escalate_to_level": 2
+      },
+      {
+        "match": "upas_core/discovery/",
+        "tests": [
+          "tests/unit/discovery/test_project_discovery.py"
+        ],
+        "escalate_to_level": 2
+      },
+      {
+        "match": "upas_core/cli/",
+        "tests": [
+          "tests/unit/cli/"
+        ],
+        "escalate_to_level": 2
+      },
+      {
+        "match": "upas_core/security/",
+        "tests": [
+          "tests/unit/security/"
+        ],
+        "escalate_to_level": 4
+      },
+      {
+        "match": "schemas/",
+        "tests": [
+          "tests/test_schemas_validation.py"
+        ],
+        "escalate_to_level": 4
+      }
+    ],
+    "escalation_triggers": {
+      "database_migrations": 5,
+      "database_schemas": 4,
+      "api_contracts": 3,
+      "runtime_configuration": 3,
+      "dependency_manifests": 3,
+      "infrastructure_manifests": 4,
+      "security_sensitive_files": 4
+    }
+  },
+  "artifact": {
+    "type": "static_bundle",
+    "builder": "python_build",
+    "registry": "ghcr.io/magognn-ux/universal-project-template",
+    "immutable_tag_format": "sha-{commit_short}"
+  },
+  "resource_gate": {
+    "pre_flight_checks": {
+      "min_free_ram_mb": 256,
+      "max_swap_usage_pct": 60,
+      "max_1m_load_average": 3.0,
+      "min_free_disk_gb": 2.0
+    }
+  },
+  "deployment": {
+    "strategy": "static_sync",
+    "target_host": "localhost",
+    "service_name": "upas-engine",
+    "runtime_directory": "/opt/upas"
+  },
+  "verification": {
+    "health_check": {
+      "type": "custom_command",
+      "command": "python upas_cli.py discover",
+      "timeout_seconds": 10,
+      "max_retries": 2,
+      "retry_interval_seconds": 2
+    }
+  },
+  "backup": {
+    "type": "none",
+    "engine_hook": "echo 'UPAS core backup not applicable'",
+    "retention_count": 1,
+    "checkpoint_dir": "/tmp"
+  },
+  "migration": {
+    "classification_policy": "explicit_manifest",
+    "default_classification": "NONE",
+    "two_phase_protocol": false
+  },
+  "authorization": {
+    "provider": "github_environment_oidc",
+    "environment_name": "production",
+    "expected_issuer": "https://token.actions.githubusercontent.com",
+    "expected_audience": "upas-production-gate",
+    "required_claims": [
+      "repository",
+      "environment",
+      "ref",
+      "job_workflow_ref"
+    ]
+  }
+}

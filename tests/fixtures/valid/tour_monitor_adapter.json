@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0.0",
+  "upas_target_version": ">=1.0.0,<2.0.0",
+  "project": {
+    "name": "tour_monitor",
+    "type": "application",
+    "language": "python",
+    "runtime_version": "3.12"
+  },
+  "zones": [
+    {
+      "name": "domain_intelligence",
+      "paths": ["core/**", "models/**"],
+      "risk_level": "high",
+      "default_test_level": 2
+    },
+    {
+      "name": "api_and_admin",
+      "paths": ["api/**", "admin/**"],
+      "risk_level": "medium",
+      "default_test_level": 1
+    },
+    {
+      "name": "database_and_tasks",
+      "paths": ["database/**", "tasks/**"],
+      "risk_level": "high",
+      "default_test_level": 3
+    }
+  ],
+  "test_engine": {
+    "runner": "pytest",
+    "level_commands": {
+      "level_0": "python -m compileall core api admin models tests",
+      "level_1": "pytest tests/unit/ -v --tb=short",
+      "level_2": "pytest tests/unit/ tests/domain/ -v --tb=short",
+      "level_3": "pytest tests/integration/ -v --tb=short",
+      "level_4": "python -m scripts.architecture_check",
+      "level_5": "pytest tests/ -v --tb=short"
+    },
+    "test_map": [
+      {
+        "match": "core/notification_*.py",
+        "tests": ["tests/unit/test_notifications.py", "tests/integration/test_notification_flow.py"],
+        "escalate_to_level": 2
+      },
+      {
+        "match": "database/migrations/**",
+        "tests": ["tests/"],
+        "escalate_to_level": 5
+      }
+    ],
+    "escalation_triggers": {
+      "database_migrations": 5,
+      "database_schemas": 5,
+      "api_contracts": 3,
+      "runtime_configuration": 3,
+      "dependency_manifests": 4,
+      "infrastructure_manifests": 4,
+      "security_sensitive_files": 5
+    }
+  },
+  "artifact": {
+    "type": "container_image",
+    "builder": "docker_buildx",
+    "registry": "ghcr.io/org/tour-monitor",
+    "immutable_tag_format": "sha-{commit_short}"
+  },
+  "resource_gate": {
+    "pre_flight_checks": {
+      "min_free_ram_mb": 600,
+      "max_swap_usage_pct": 40,
+      "max_1m_load_average": 1.8,
+      "min_free_disk_gb": 4.0,
+      "required_shared_containers": ["shared-postgres", "shared-nginx"]
+    }
+  },
+  "deployment": {
+    "strategy": "immutable_pull",
+    "target_host": "root@runode",
+    "service_name": "tour-monitor",
+    "runtime_directory": "/opt/tour-monitor",
+    "compose_file": "docker-compose.prod.yml",
+    "concurrency_group": "production-deploy",
+    "host_lock_path": "/run/lock/upas-deploy.lock",
+    "lock_timeout_seconds": 30
+  },
+  "verification": {
+    "health_check": {
+      "type": "http_get",
+      "endpoint": "http://localhost:8080/api/status",
+      "expected_status": 200,
+      "timeout_seconds": 5,
+      "max_retries": 12,
+      "retry_interval_seconds": 5
+    },
+    "smoke_test": {
+      "type": "custom_command",
+      "command": "docker exec tour-monitor python -m scripts.smoke_test",
+      "timeout_seconds": 15
+    }
+  },
+  "backup": {
+    "type": "database_and_config",
+    "engine_hook": "adapter/hooks/postgres_backup.py",
+    "retention_count": 30,
+    "checkpoint_dir": "/opt/tour-monitor/backups"
+  },
+  "migration": {
+    "classification_policy": "explicit_manifest",
+    "default_classification": "POTENTIALLY_INCOMPATIBLE",
+    "two_phase_protocol": true,
+    "pre_deploy_hook": "docker exec tour-monitor alembic upgrade head",
+    "post_deploy_finalize_hook": "docker exec tour-monitor python -m scripts.cleanup_old_schema"
+  },
+  "infrastructure_dependencies": [
+    {
+      "name": "shared-postgres",
+      "type": "external",
+      "access": "readonly_consumer",
+      "health_endpoint_or_container": "shared-postgres"
+    },
+    {
+      "name": "shared-nginx",
+      "type": "external",
+      "access": "readonly_consumer",
+      "health_endpoint_or_container": "shared-nginx"
+    }
+  ],
+  "authorization": {
+    "provider": "github_environment_oidc",
+    "environment_name": "production",
+    "expected_issuer": "https://token.actions.githubusercontent.com",
+    "expected_audience": "upas-production-gate",
+    "required_claims": ["repository", "environment", "ref", "job_workflow_ref"]
+  }
+}

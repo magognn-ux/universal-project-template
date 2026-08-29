@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "upas_target_version": ">=1.0.0,<2.0.0",
+  "project": {
+    "name": "app",
+    "type": "application",
+    "language": "python",
+    "runtime_version": "3.12"
+  },
+  "zones": [
+    {
+      "name": "core",
+      "paths": ["src/**"],
+      "risk_level": "medium",
+      "default_test_level": 1
+    }
+  ],
+  "test_engine": {
+    "runner": "pytest",
+    "level_commands": {
+      "level_0": "compileall",
+      "level_1": "pytest",
+      "level_2": "pytest",
+      "level_3": "pytest",
+      "level_4": "pytest",
+      "level_5": "pytest"
+    },
+    "test_map": [],
+    "escalation_triggers": {
+      "database_migrations": 5,
+      "database_schemas": 3,
+      "api_contracts": 3,
+      "runtime_configuration": 3,
+      "dependency_manifests": 3,
+      "infrastructure_manifests": 4,
+      "security_sensitive_files": 4
+    }
+  },
+  "artifact": {
+    "type": "container_image",
+    "builder": "docker_buildx",
+    "registry": "ghcr.io/org/app",
+    "immutable_tag_format": "sha-{commit_short}"
+  },
+  "resource_gate": {
+    "pre_flight_checks": {
+      "min_free_ram_mb": 512,
+      "max_swap_usage_pct": 50,
+      "max_1m_load_average": 2.0,
+      "min_free_disk_gb": 2.0
+    }
+  },
+  "deployment": {
+    "strategy": "immutable_pull",
+    "target_host": "root@runode",
+    "service_name": "app",
+    "runtime_directory": "/opt/app",
+    "host_lock_path": "relative/lock.file"
+  },
+  "verification": {
+    "health_check": {
+      "type": "http_get",
+      "timeout_seconds": 5,
+      "max_retries": 3,
+      "retry_interval_seconds": 2
+    }
+  },
+  "backup": {
+    "type": "none",
+    "engine_hook": "none",
+    "retention_count": 1,
+    "checkpoint_dir": "/tmp"
+  },
+  "migration": {
+    "classification_policy": "explicit_manifest",
+    "default_classification": "NONE",
+    "two_phase_protocol": false
+  },
+  "authorization": {
+    "provider": "github_environment_oidc",
+    "environment_name": "production",
+    "expected_issuer": "https://token.actions.githubusercontent.com",
+    "expected_audience": "upas-production-gate",
+    "required_claims": ["repository", "environment", "ref", "job_workflow_ref"]
+  }
+}

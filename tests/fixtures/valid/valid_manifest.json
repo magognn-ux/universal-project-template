@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "core_version": "1.0.0",
+  "supported_schema_versions": {
+    "adapter": ["1.0.0"],
+    "evidence": ["1.0.0"],
+    "artifact": ["1.0.0"],
+    "manifest": ["1.0.0"]
+  },
+  "cli_commands": [
+    {
+      "command": "upas precheck",
+      "description": "Performs working tree analysis, secret scan, and Level 0/1/2 test runs.",
+      "arguments": ["--qa-approved", "--dry-run"],
+      "lifecycle_binding": "change"
+    },
+    {
+      "command": "upas test",
+      "description": "Executes risk-oriented targeted tests according to computed Test Budget.",
+      "arguments": ["--level", "--dry-run", "--all"],
+      "lifecycle_binding": "change"
+    },
+    {
+      "command": "upas deploy",
+      "description": "Executes two-phase deployment protocol using immutable OCI digest.",
+      "arguments": ["--release-id", "--approval-token"],
+      "lifecycle_binding": "deployment"
+    },
+    {
+      "command": "upas rollback",
+      "description": "Executes automatic application rollback or initiates DB restore gate.",
+      "arguments": ["--target-release", "--destructive-db-token"],
+      "lifecycle_binding": "deployment"
+    },
+    {
+      "command": "upas status",
+      "description": "Retrieves live status, active release digest, and evidence summary.",
+      "arguments": ["--json"],
+      "lifecycle_binding": "governance"
+    },
+    {
+      "command": "upas validate-docs",
+      "description": "Validates documentation against actual executable capabilities manifest.",
+      "arguments": ["--strict"],
+      "lifecycle_binding": "utility"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "zero_bypass_host_guard",
+      "name": "Host-Side OIDC Zero-Bypass Guard",
+      "description": "Rejects any mutating SSH command lacking signed GitHub Environment OIDC token.",
+      "status": "active",
+      "enforcement_type": "host_guard"
+    },
+    {
+      "id": "two_phase_migration_safety",
+      "name": "Two-Phase DB Migration Protocol",
+      "description": "Prevents catastrophic application rollback on incompatible DB schemas.",
+      "status": "active",
+      "enforcement_type": "workflow_engine"
+    },
+    {
+      "id": "immutable_digest_pull",
+      "name": "Immutable Digest Pull Engine",
+      "description": "Forces all pulls to use @sha256 digest, treating tags as aliases.",
+      "status": "active",
+      "enforcement_type": "cli_local"
+    }
+  ],
+  "documentation_contract": {
+    "required_documents": [
+      { "filename": "00_DOCS_INDEX.md", "purpose": "Primary documentation navigation entrypoint", "mandatory_for_agent_read": true },
+      { "filename": "01_PROJECT_IDENTITY.md", "purpose": "Product domain and tech stack identity", "mandatory_for_agent_read": false },
+      { "filename": "02_ARCHITECTURE.md", "purpose": "Module structure and layer boundary invariants", "mandatory_for_agent_read": true },
+      { "filename": "03_ENVIRONMENTS.md", "purpose": "Matrix of Local, CI, Staging, and Production environments", "mandatory_for_agent_read": true },
+      { "filename": "04_INFRASTRUCTURE.md", "purpose": "Shared server resources, networks, and database boundaries", "mandatory_for_agent_read": true },
+      { "filename": "05_DEVELOPMENT.md", "purpose": "Local setup, virtualenv, formatting, and linters", "mandatory_for_agent_read": false },
+      { "filename": "06_TESTING.md", "purpose": "5-tier test policy, test budget calculation, and escalation rules", "mandatory_for_agent_read": true },
+      { "filename": "07_RELEASE.md", "purpose": "Release State Machine and evidence integrity matrix", "mandatory_for_agent_read": true },
+      { "filename": "08_DEPLOYMENT.md", "purpose": "Two-phase deployment contract and Pre-flight Resource Gates", "mandatory_for_agent_read": true },
+      { "filename": "09_ROLLBACK.md", "purpose": "Application rollback protocol and Database Restore Gate", "mandatory_for_agent_read": true },
+      { "filename": "10_PRODUCTION_VERIFICATION.md", "purpose": "Healthcheck and smoke test verification checklist", "mandatory_for_agent_read": true },
+      { "filename": "11_SECRETS.md", "purpose": "Threat model, secret masking, and environment credential policy", "mandatory_for_agent_read": true },
+      { "filename": "12_AGENT_GOVERNANCE.md", "purpose": "Mandatory rules, permission boundaries, and hard prohibitions for AI agents", "mandatory_for_agent_read": true },
+      { "filename": "13_OPERATIONS.md", "purpose": "CLI commands reference and operational runbook", "mandatory_for_agent_read": false }
+    ]
+  },
+  "security_invariants": {
+    "zero_bypass_enforced": true,
+    "immutable_digest_enforced": true,
+    "host_lock_enforced": true,
+    "migration_safety_enforced": true
+  }
+}

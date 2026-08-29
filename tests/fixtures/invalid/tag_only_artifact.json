@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_id": "art_20260828_tag_only",
+  "project_name": "insecure_service",
+  "artifact_type": "container_image",
+  "canonical_reference": "ghcr.io/org/insecure-service:latest",
+  "immutable_digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+  "source_commit": "8f3a1c9b2e04d7119024fbc09123456789abcdef",
+  "source_branch": "master",
+  "build_timestamp": "2026-08-28T18:20:00Z",
+  "builder_metadata": {
+    "ci_run_id": "123456789",
+    "runner_os": "ubuntu-22.04",
+    "toolchain": "docker-buildx-v0.12"
+  }
+}

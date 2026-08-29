@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.upas.dev/v1/artifact.schema.json",
+  "title": "UPAS Artifact Descriptor Schema",
+  "description": "Formal contract for abstract immutable artifacts in UPAS (container images, binaries, bundles).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "project_name",
+    "artifact_type",
+    "canonical_reference",
+    "immutable_digest",
+    "source_commit",
+    "source_branch",
+    "build_timestamp",
+    "builder_metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0.0"],
+      "description": "Version of the Artifact Descriptor schema."
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^art_[a-zA-Z0-9_\\-\\.]+$",
+      "description": "Unique identifier for this artifact build instance."
+    },
+    "project_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_\\-]+$",
+      "description": "Name of the owning project."
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": [
+        "container_image",
+        "s3_archive",
+        "standalone_binary",
+        "static_bundle"
+      ],
+      "description": "Physical backend classification of the artifact."
+    },
+    "canonical_reference": {
+      "type": "string",
+      "pattern": "^[^\\s@]+@sha256:[a-f0-9]{64}$",
+      "description": "Authoritative immutable address strictly pinned by cryptographic digest. Mutable tags and double @ are forbidden."
+    },
+    "immutable_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "Cryptographic SHA256 content digest of the artifact (lowercase 64 hex chars)."
+    },
+    "human_readable_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_\\-\\.]+$"
+      },
+      "description": "Non-authoritative human aliases (e.g. ['latest', 'sha-8f3a1c9', 'v1.0.0'])."
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "Full 40-character Git commit SHA from which the artifact was built."
+    },
+    "source_branch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Git branch name at build time."
+    },
+    "build_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of build completion."
+    },
+    "builder_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ci_run_id", "runner_os", "toolchain"],
+      "properties": {
+        "ci_run_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "GitHub Actions run ID or equivalent CI execution ID."
+        },
+        "runner_os": {
+          "type": "string",
+          "minLength": 1,
+          "description": "OS identifier of the build runner."
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Toolchain version (e.g. docker-buildx-v0.12, rustc-1.78)."
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance_attestation", "verified"],
+      "properties": {
+        "provenance_attestation": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Cryptographic attestation reference (e.g. cosign bundle, in-toto attestation)."
+        },
+        "key_id": {
+          "type": "string",
+          "description": "Signing key or certificate identifier."
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Whether signature was verified during release gate."
+        }
+      }
+    }
+  }
+}

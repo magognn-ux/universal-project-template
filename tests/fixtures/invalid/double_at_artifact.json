@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_id": "art_double_at",
+  "project_name": "app",
+  "artifact_type": "container_image",
+  "canonical_reference": "ghcr.io/org/app@tag@sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+  "immutable_digest": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+  "source_commit": "8f3a1c9b2e04d7119024fbc09123456789abcdef",
+  "source_branch": "master",
+  "build_timestamp": "2026-08-28T18:20:00Z",
+  "builder_metadata": {
+    "ci_run_id": "123",
+    "runner_os": "ubuntu-22.04",
+    "toolchain": "docker-buildx"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "core_version": "1.0.0",
+  "supported_schema_versions": {
+    "adapter": ["1.0.0"],
+    "evidence": ["1.0.0"],
+    "artifact": ["1.0.0"],
+    "manifest": ["1.0.0"]
+  },
+  "cli_commands": [
+    {
+      "command": "upas test",
+      "description": "Run tests",
+      "lifecycle_binding": "change"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "insecure_cap",
+      "name": "Insecure Cap",
+      "status": "active",
+      "enforcement_type": "cli_local"
+    }
+  ],
+  "documentation_contract": {
+    "required_documents": [
+      { "filename": "00_DOCS_INDEX.md", "purpose": "Index", "mandatory_for_agent_read": true }
+    ]
+  },
+  "security_invariants": {
+    "zero_bypass_enforced": false,
+    "immutable_digest_enforced": true,
+    "host_lock_enforced": true,
+    "migration_safety_enforced": true
+  }
+}

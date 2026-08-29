@@ -1,0 +1,212 @@
+# ==============================================================================
+# UPAS — Central Reusable GitHub Actions Workflow
+# Universal Project Automation Standard Pipeline Engine
+# ==============================================================================
+name: UPAS Pipeline Engine
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python runtime version"
+        required: false
+        default: "3.11"
+        type: string
+      adapter-path:
+        description: "Path to upas.adapter.json"
+        required: false
+        default: "upas.adapter.json"
+        type: string
+      target-environment:
+        description: "Target deployment environment"
+        required: false
+        default: "production"
+        type: string
+      force-full-tests:
+        description: "Force Level 5 full regression suite"
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: false
+      UPAS_PROD_SECRET:
+        required: false
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. UPAS Discovery, Contract Validation & Static Checks
+  # ----------------------------------------------------------------------------
+  discover-and-validate:
+    name: 1. Discovery & Contract Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout UPAS Core Engine
+        uses: actions/checkout@v4
+        with:
+          repository: magognn-ux/universal-project-template
+          path: .upas_engine
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install UPAS Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema pyjwt cryptography pytest
+
+      - name: UPAS Discovery & Adapter Validation Gate
+        run: |
+          export PYTHONPATH=".upas_engine:$PYTHONPATH"
+          python .upas_engine/upas_cli.py discover --project . --adapter ${{ inputs.adapter-path }}
+
+  # ----------------------------------------------------------------------------
+  # 2. UPAS Test Budget Engine (Targeted & Escalated Execution)
+  # ----------------------------------------------------------------------------
+  test-budget-execution:
+    name: 2. Test Budget & QA Gate
+    runs-on: ubuntu-latest
+    needs: discover-and-validate
+    steps:
+      - name: Checkout Project Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout UPAS Core Engine
+        uses: actions/checkout@v4
+        with:
+          repository: magognn-ux/universal-project-template
+          path: .upas_engine
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: "pip"
+
+      - name: Install Project Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install jsonschema pyjwt cryptography pytest
+
+      - name: UPAS Precheck (Test Budget & Targeted Runner)
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: |
+          export PYTHONPATH=".upas_engine:$PYTHONPATH"
+          FORCE_OPT=""
+          if [ "${{ inputs.force-full-tests }}" = "true" ]; then
+            FORCE_OPT="--force-level 5"
+          fi
+          python .upas_engine/upas_cli.py precheck --project . --adapter ${{ inputs.adapter-path }} $FORCE_OPT
+
+  # ----------------------------------------------------------------------------
+  # 3. Immutable Artifact Builder (GHCR with immutable digest)
+  # ----------------------------------------------------------------------------
+  build-artifact:
+    name: 3. Immutable Artifact Builder
+    runs-on: ubuntu-latest
+    needs: test-budget-execution
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+      canonical_ref: ${{ steps.meta.outputs.canonical_ref }}
+    steps:
+      - name: Checkout Project Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Immutable Tags
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-8)
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "canonical_ref=ghcr.io/${{ github.repository }}:sha-$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Build & Push Immutable Artifact
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:sha-${{ steps.meta.outputs.short_sha }}
+            ghcr.io/${{ github.repository }}:latest
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            GIT_BRANCH=${{ github.ref_name }}
+
+  # ----------------------------------------------------------------------------
+  # 4. Production Deployment & Verification Gate (Requires GitHub Environment Approval)
+  # ----------------------------------------------------------------------------
+  production-deploy-gate:
+    name: 4. Production Release Gate
+    runs-on: ubuntu-latest
+    needs: build-artifact
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ inputs.target-environment }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Project Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout UPAS Core Engine
+        uses: actions/checkout@v4
+        with:
+          repository: magognn-ux/universal-project-template
+          path: .upas_engine
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install UPAS Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema pyjwt cryptography
+
+      - name: Request GitHub OIDC Token for Production Release
+        id: oidc
+        uses: actions/core@v1
+        with:
+          audience: "upas-production-gate"
+
+      - name: Execute Authoritative UPAS Deployment Lifecycle
+        run: |
+          export PYTHONPATH=".upas_engine:$PYTHONPATH"
+          python .upas_engine/upas_cli.py deploy \
+            --adapter ${{ inputs.adapter-path }} \
+            --canonical-reference "${{ needs.build-artifact.outputs.canonical_ref }}" \
+            --digest "${{ needs.build-artifact.outputs.image_digest }}" \
+            --commit-sha "${{ github.sha }}" \
+            --branch "${{ github.ref_name }}" \
+            --expected-repository "${{ github.repository }}" \
+            --expected-environment "${{ inputs.target-environment }}" \
+            --output-evidence "release_evidence.json" \
+            --output-manifest "release_manifest.json"
