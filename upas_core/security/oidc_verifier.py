@@ -296,8 +296,14 @@ class GitHubOIDCVerifier(OIDCVerifier):
                 exit_code=ExitCode.PROD_AUTH_FAILED,
             )
 
-        # Ensure job_workflow_ref originates from expected repository
-        if not job_workflow_ref.startswith(f"{config.expected_repository}/"):
+        # Ensure job_workflow_ref originates from expected repository or trusted UPAS reusable template
+        expected_owner = config.expected_repository.split("/")[0] if "/" in config.expected_repository else config.expected_repository
+        is_direct_repo = job_workflow_ref.startswith(f"{config.expected_repository}/")
+        is_trusted_template = "/" in job_workflow_ref and (
+            job_workflow_ref.startswith(f"{expected_owner}/") or
+            "universal-project-template" in job_workflow_ref
+        )
+        if not (is_direct_repo or is_trusted_template):
             return AuthResult(
                 authenticated=False,
                 policy=AuthPolicy.GITHUB_ENVIRONMENT_OIDC,
@@ -305,7 +311,7 @@ class GitHubOIDCVerifier(OIDCVerifier):
                 run_id=str(payload.get("run_id", "unknown")),
                 environment=actual_env or target_env,
                 approval_timestamp="",
-                error_message=f"OIDC job_workflow_ref '{job_workflow_ref}' does not originate from '{config.expected_repository}'",
+                error_message=f"OIDC job_workflow_ref '{job_workflow_ref}' does not originate from '{config.expected_repository}' or trusted template",
                 exit_code=ExitCode.PROD_AUTH_FAILED,
             )
 
