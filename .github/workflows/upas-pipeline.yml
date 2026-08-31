@@ -204,7 +204,7 @@ jobs:
           export PYTHONPATH=".upas_engine:$PYTHONPATH"
           python .upas_engine/upas_cli.py deploy \
             --adapter ${{ inputs.adapter-path }} \
-            --canonical-reference "${{ needs.build-artifact.outputs.canonical_ref }}" \
+            --canonical-reference "${{ needs.build-artifact.outputs.canonical_ref }}@${{ needs.build-artifact.outputs.image_digest }}" \
             --digest "${{ needs.build-artifact.outputs.image_digest }}" \
             --commit-sha "${{ github.sha }}" \
             --branch "${{ github.ref_name }}" \
