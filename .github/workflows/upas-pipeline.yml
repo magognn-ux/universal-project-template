@@ -50,6 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: magognn-ux/universal-project-template
+          ref: ${{ github.workflow_sha }}
           path: .upas_engine
 
       - name: Set up Python
@@ -84,6 +85,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: magognn-ux/universal-project-template
+          ref: ${{ github.workflow_sha }}
           path: .upas_engine
 
       - name: Set up Python
@@ -179,6 +181,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: magognn-ux/universal-project-template
+          ref: ${{ github.workflow_sha }}
           path: .upas_engine
 
       - name: Set up Python

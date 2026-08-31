@@ -221,6 +221,18 @@ class PostDeployVerifier:
                         exit_code=ExitCode.TESTS_FAILED,
                         details=details,
                     )
+            else:
+                return RuntimeStateResult(
+                    verified=False,
+                    service_name=service_name,
+                    running_digest=running_digest,
+                    identity_matched=True,
+                    health_check_passed=False,
+                    smoke_test_passed=False,
+                    error_message=f"Unsupported health check type '{hc_type}'",
+                    exit_code=ExitCode.TESTS_FAILED,
+                    details=details,
+                )
         details["health_check_passed"] = True
 
         # 4. Smoke Test
