@@ -17,7 +17,6 @@ from upas_core.contracts.enums import ExitCode, StepStatus
 from upas_core.contracts.errors import DigestMismatchError
 from upas_core.contracts.execution import CommandSpec
 from upas_core.contracts.interfaces import ArtifactVerifier, CommandRunner
-from upas_core.deployment.artifact_verifier import CanonicalArtifactVerifier
 from upas_core.execution.runner import SafeCommandRunner
 
 
@@ -75,7 +74,11 @@ class PostDeployVerifier:
         artifact_verifier: Optional[ArtifactVerifier] = None,
         command_runner: Optional[CommandRunner] = None,
     ):
-        self.artifact_verifier = artifact_verifier or CanonicalArtifactVerifier()
+        if artifact_verifier is None:
+            from upas_core.deployment.artifact_verifier import CanonicalArtifactVerifier
+            self.artifact_verifier = CanonicalArtifactVerifier()
+        else:
+            self.artifact_verifier = artifact_verifier
         self.command_runner = command_runner or SafeCommandRunner()
 
     def _check_http_health(
@@ -202,7 +205,7 @@ class PostDeployVerifier:
                         exit_code=ExitCode.TESTS_FAILED,
                         details=details,
                     )
-            elif hc_type == "custom_command":
+            elif hc_type in ("custom_command", "process_check"):
                 cmd = health_check_spec.get("command", "true")
                 timeout_s = health_check_spec.get("timeout_seconds", 10)
                 health_ok, err = self._execute_custom_command(cmd, timeout_s)

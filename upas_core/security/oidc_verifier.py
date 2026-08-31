@@ -299,9 +299,9 @@ class GitHubOIDCVerifier(OIDCVerifier):
         # Ensure job_workflow_ref originates from expected repository or trusted UPAS reusable template
         expected_owner = config.expected_repository.split("/")[0] if "/" in config.expected_repository else config.expected_repository
         is_direct_repo = job_workflow_ref.startswith(f"{config.expected_repository}/")
-        is_trusted_template = "/" in job_workflow_ref and (
-            job_workflow_ref.startswith(f"{expected_owner}/") or
-            "universal-project-template" in job_workflow_ref
+        is_trusted_template = (
+            job_workflow_ref.startswith("magognn-ux/universal-project-template/") or
+            job_workflow_ref.startswith(f"{expected_owner}/universal-project-template/")
         )
         if not (is_direct_repo or is_trusted_template):
             return AuthResult(

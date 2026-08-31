@@ -87,7 +87,7 @@
   },
   "verification": {
     "health_check": {
-      "type": "process_check",
+      "type": "custom_command",
       "command": "docker exec support-bot python -c 'import sys; sys.exit(0)'",
       "timeout_seconds": 10,
       "max_retries": 6,

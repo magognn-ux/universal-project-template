@@ -174,7 +174,7 @@ def test_adversarial_H_empty_ref(rsa_keys, base_config):
     assert res.exit_code == ExitCode.PROD_AUTH_FAILED
 
 
-# I. Wrong Workflow
+# I. Wrong Workflow & Hardened Job Workflow Ref Attacks
 def test_adversarial_I_wrong_workflow(rsa_keys, base_config):
     priv, pub = rsa_keys
     payload = build_payload({
@@ -187,6 +187,55 @@ def test_adversarial_I_wrong_workflow(rsa_keys, base_config):
     assert res.authenticated is False
     assert res.exit_code == ExitCode.PROD_AUTH_FAILED
     assert "does not originate from" in res.error_message
+
+
+@pytest.mark.parametrize(
+    "malicious_workflow_ref",
+    [
+        "attacker/universal-project-template/.github/workflows/upas-pipeline.yml@refs/tags/v1.0.0",
+        "magognn-ux/universal-project-template-fork/.github/workflows/upas-pipeline.yml@refs/tags/v1.0.0",
+        "evil-org/universal-project-template/.github/workflows/upas-pipeline.yml@refs/tags/v1.0.0",
+        "some-org/evil-universal-project-template/.github/workflows/upas-pipeline.yml@refs/heads/main",
+    ],
+)
+def test_adversarial_I_job_workflow_ref_substring_and_fork_rejected(rsa_keys, base_config, malicious_workflow_ref):
+    priv, pub = rsa_keys
+    payload = build_payload({"job_workflow_ref": malicious_workflow_ref})
+    token = jwt.encode(payload, priv, algorithm="RS256", headers={"kid": "k1"})
+
+    verifier = GitHubOIDCVerifier(signing_keys={"k1": pub})
+    res = verifier.verify_token(token, base_config)
+    assert res.authenticated is False
+    assert res.exit_code == ExitCode.PROD_AUTH_FAILED
+    assert "does not originate from" in res.error_message
+
+
+def test_adversarial_I_trusted_central_upas_workflow_accepted(rsa_keys):
+    priv, pub = rsa_keys
+    pilot_config = OIDCExpectedConfig(
+        expected_issuer="https://token.actions.githubusercontent.com",
+        expected_audience="upas-production-gate",
+        expected_repository="magognn-ux/support-bot",
+        expected_environment="production",
+        required_claims=["repository", "environment", "ref", "job_workflow_ref"],
+    )
+    payload = {
+        "iss": "https://token.actions.githubusercontent.com",
+        "aud": "upas-production-gate",
+        "repository": "magognn-ux/support-bot",
+        "environment": "production",
+        "ref": "refs/tags/v0.4.0",
+        "job_workflow_ref": "magognn-ux/universal-project-template/.github/workflows/upas-pipeline.yml@refs/tags/v1.0.1",
+        "jti": f"trusted-upas-{time.time()}",
+        "exp": int(time.time()) + 3600,
+        "actor": "release-manager",
+        "run_id": "998877",
+    }
+    token = jwt.encode(payload, priv, algorithm="RS256", headers={"kid": "k1"})
+    verifier = GitHubOIDCVerifier(signing_keys={"k1": pub})
+    res = verifier.verify_token(token, pilot_config)
+    assert res.authenticated is True
+    assert res.exit_code == ExitCode.SUCCESS
 
 
 # J. Missing Required Claim
