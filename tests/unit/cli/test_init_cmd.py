@@ -92,9 +92,9 @@ def test_cli_init_command():
         workflow_file = Path(tmpdir) / ".github" / "workflows" / "upas.yml"
         assert adapter_file.exists()
         assert workflow_file.exists()
-        # Verify workflow is pinned to @v1
+        # Verify workflow is pinned to immutable @v1.0.1
         workflow_text = workflow_file.read_text()
-        assert "@v1" in workflow_text
+        assert "@v1.0.1" in workflow_text
         assert "@main" not in workflow_text
 
 

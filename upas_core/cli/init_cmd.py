@@ -353,7 +353,7 @@ DEFAULT_PYTHON_ADAPTER_TEMPLATE = DEFAULT_APPLICATION_ADAPTER_TEMPLATE
 CALLER_WORKFLOW_TEMPLATE = """# ==============================================================================
 # UPAS — Caller Workflow (Universal Project Automation Standard)
 # Connects this repository to the central UPAS reusable workflow engine.
-# Versioning: Pinned to @v1 (SemVer stable branch). For immutable freeze, use @v1.0.0 or @<SHA>.
+# Versioning: Pinned to immutable release @v1.0.1.
 # ==============================================================================
 name: UPAS Pipeline
 
@@ -372,7 +372,7 @@ jobs:
   upas-ci:
     name: UPAS Automation Engine
     # Calls the central reusable UPAS workflow from universal-project-template
-    uses: magognn-ux/universal-project-template/.github/workflows/upas-pipeline.yml@v1
+    uses: magognn-ux/universal-project-template/.github/workflows/upas-pipeline.yml@v1.0.1
     secrets: inherit
 """
 
