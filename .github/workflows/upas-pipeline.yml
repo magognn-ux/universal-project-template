@@ -193,9 +193,11 @@ jobs:
 
       - name: Request GitHub OIDC Token for Production Release
         id: oidc
-        uses: actions/core@v1
+        uses: actions/github-script@v7
         with:
-          audience: "upas-production-gate"
+          script: |
+            const idToken = await core.getIDToken('upas-production-gate');
+            core.exportVariable('UPAS_OIDC_TOKEN', idToken);
 
       - name: Execute Authoritative UPAS Deployment Lifecycle
         run: |
